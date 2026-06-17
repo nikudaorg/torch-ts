@@ -1,0 +1,30 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      ts-arithmetic:
+        specifier: ^0.1.1
+        version: 0.1.1
+      yet-another-hkt:
+        specifier: ^0.1.0
+        version: 0.1.0
+
+packages:
+
+  ts-arithmetic@0.1.1:
+    resolution: {integrity: sha512-3VqgsRgzaYfj+zKWn+7O66ifHwbOOnT2BoOrHwdEUBz7az0DetoZOS20+juNJh1klgzvWEi2Qxden41pomOUAQ==}
+
+  yet-another-hkt@0.1.0:
+    resolution: {integrity: sha512-2kd7Osifl37DvwmamrP66vg3DWV0BEgioyOtGpiBGTCgiIg8sdp2iDjCE/iQBCqknfTp0WQoy8AUFpcoPlyJlw==}
+
+snapshots:
+
+  ts-arithmetic@0.1.1: {}
+
+  yet-another-hkt@0.1.0: {}
