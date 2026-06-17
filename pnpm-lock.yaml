@@ -14,11 +14,20 @@ importers:
       yet-another-hkt:
         specifier: ^0.1.0
         version: 0.1.0
+    devDependencies:
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
 
 packages:
 
   ts-arithmetic@0.1.1:
     resolution: {integrity: sha512-3VqgsRgzaYfj+zKWn+7O66ifHwbOOnT2BoOrHwdEUBz7az0DetoZOS20+juNJh1klgzvWEi2Qxden41pomOUAQ==}
+
+  typescript@6.0.3:
+    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
 
   yet-another-hkt@0.1.0:
     resolution: {integrity: sha512-2kd7Osifl37DvwmamrP66vg3DWV0BEgioyOtGpiBGTCgiIg8sdp2iDjCE/iQBCqknfTp0WQoy8AUFpcoPlyJlw==}
@@ -26,5 +35,7 @@ packages:
 snapshots:
 
   ts-arithmetic@0.1.1: {}
+
+  typescript@6.0.3: {}
 
   yet-another-hkt@0.1.0: {}
