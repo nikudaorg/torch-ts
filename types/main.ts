@@ -157,9 +157,12 @@ export type SimpleValidate<T1 extends Tensor, T2 extends Tensor> = If<
   >
 >;
 
-export type Simple<
-  T1 extends Tensor,
-  T2 extends Tensor,
-  S1 extends Shape,
-  S2 extends Shape
-> = Tensor<Broadcast<S1, S2>, T1['dtype']>;
+export type Simple<T1 extends Tensor, T2 extends Tensor> = If<
+  Equiv<SimpleValidate<T1, T2>, []>,
+  Tensor<
+    Broadcast<T1['shape'], T2['shape']>,
+    PromoteDType<T1['dtype'], T2['dtype']>,
+    T1['device']
+  >,
+  SimpleValidate<T1, T2>
+>;
