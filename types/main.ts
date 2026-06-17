@@ -87,6 +87,8 @@ type IfEquiv<A, B, C, D> = A extends B ? (B extends A ? C : D) : D;
 export type Broadcast<S1 extends Shape, S2 extends Shape> =
   Equiv<S1, S2> extends 1 ? S1 : Broadcast_<S1, S2>;
 
+type Assume<T, U> = T extends U ? T : never;
+
 type Last<L extends unknown[]> = L extends [...infer _, infer Last]
   ? Last
   : never;
@@ -160,7 +162,7 @@ export type SimpleValidate<T1 extends Tensor, T2 extends Tensor> = If<
 export type Simple<T1 extends Tensor, T2 extends Tensor> = If<
   Equiv<SimpleValidate<T1, T2>, []>,
   Tensor<
-    Broadcast<T1['shape'], T2['shape']>,
+    Assume<Broadcast<T1['shape'], T2['shape']>, Shape>,
     PromoteDType<T1['dtype'], T2['dtype']>,
     T1['device']
   >,
