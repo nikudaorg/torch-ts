@@ -1,13 +1,10 @@
-import type { Add } from 'ts-arithmetic';
+import type { Add, Lt } from 'ts-arithmetic';
+import { If } from './control';
 
 export type NormalizeIndex<
   Index extends number,
   Length extends number
-> = Index extends Index
-  ? `${Index}` extends `-${string}`
-    ? Add<Length, Index>
-    : Index
-  : never;
+> = Index extends Index ? If<Lt<Index, 0>, Add<Length, Index>, Index> : never;
 
 type RemoveElementsImpl<
   L extends unknown[],
@@ -93,3 +90,31 @@ export type SetElements<L extends unknown[], I extends number[], A> = {
       : L[K]
     : L[K];
 };
+
+export type Last<L extends unknown[]> = L extends [...infer _, infer Last]
+  ? Last
+  : never;
+export type Pop<L extends unknown[]> = L extends [...infer Rest, infer _]
+  ? Rest
+  : never;
+
+type Printable = string | number | bigint | boolean | null | undefined;
+
+export type Join<L extends Printable[], Sep extends string = ', '> = L extends [
+  infer First extends Printable,
+  infer Second extends Printable,
+  ...infer Rest extends Printable[]
+]
+  ? `${First}${Sep}${Join<[Second, ...Rest], Sep>}`
+  : L extends [infer First extends Printable]
+    ? `${First}`
+    : '';
+
+export type HasDuplicates<
+  L extends number[],
+  Acc extends number = never
+> = L extends [infer First extends number, ...infer Rest extends number[]]
+  ? First extends Acc
+    ? 1
+    : HasDuplicates<Rest, Acc | First>
+  : 0;

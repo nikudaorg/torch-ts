@@ -1,4 +1,4 @@
-import { Tensor } from './main';
+import { Tensor } from './tensor';
 
 type QuantizedDType = 'qint8' | 'quint8' | 'qint32' | 'quint4x2' | 'quint2x4';
 
@@ -276,10 +276,13 @@ type DTypeByLetter = {
   C: ComplexDType;
 };
 
-export type DType_<Letters extends string, Result = never> = Letters extends ''
+export type GetDType<
+  Letters extends string,
+  Result = never
+> = Letters extends ''
   ? Result
   : Letters extends `${infer Letter}${infer Rest}`
     ? Letter extends keyof DTypeByLetter
-      ? DType_<Rest, Result | DTypeByLetter[Letter]>
+      ? GetDType<Rest, Result | DTypeByLetter[Letter]>
       : never
     : never;

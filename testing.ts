@@ -6,7 +6,7 @@ import {
   ValidateDim_,
   ValidateDimension
 } from './types/main';
-import { AreAllDTypesPromotable } from './types/type-promotion';
+import { AreAllDTypesPromotable } from './types/basic/dtype';
 
 declare const t: API<'float32', 'cpu'>;
 
