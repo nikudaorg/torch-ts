@@ -1,4 +1,4 @@
-import { DType } from './main';
+import { Tensor } from './main';
 
 type QuantizedDType = 'qint8' | 'quint8' | 'qint32' | 'quint4x2' | 'quint2x4';
 
@@ -23,9 +23,20 @@ type ShellDType =
 type SignedIntegerDType = 'int8' | 'int16' | 'int32' | 'int64';
 type IntegralDType = 'uint8' | SignedIntegerDType;
 type FloatingDType = 'float16' | 'bfloat16' | 'float32' | 'float64';
-type ComplexDType = 'complex32' | 'complex64' | 'complex128';
+type HalfPrecisionComplexDType = 'complex32';
+type NormalComplexDType = 'complex64' | 'complex128';
+type ComplexDType = HalfPrecisionComplexDType | NormalComplexDType;
+type BoolDType = 'bool';
+
+export type DType =
+  | SignedIntegerDType
+  | IntegralDType
+  | FloatingDType
+  | ComplexDType
+  | BoolDType;
 
 type UnsupportedPromotionDType = ShellDType | QuantizedDType;
+export type Esoteric = UnsupportedPromotionDType;
 
 /* -------------------------------------------------------------------------- */
 /* Integer promotion                                                          */
@@ -121,38 +132,37 @@ type PromoteComplex<
 /* Public type                                                                */
 /* -------------------------------------------------------------------------- */
 
-type PromoteSupportedDTypes<
-  A extends DType,
-  B extends DType
-> = A extends UnsupportedPromotionDType
-  ? never
-  : B extends UnsupportedPromotionDType
-    ? never
-    : A extends ComplexDType
-      ? B extends ComplexDType
-        ? PromoteComplex<A, B>
-        : B extends FloatingDType
-          ? PromoteComplexWithFloating<A, B>
+type PromoteSupportedDTypes<A extends DType, B extends DType> =
+  // A extends UnsupportedPromotionDType
+  //   ? never
+  //   : B extends UnsupportedPromotionDType
+  //     ? never
+  //     :
+  A extends ComplexDType
+    ? B extends ComplexDType
+      ? PromoteComplex<A, B>
+      : B extends FloatingDType
+        ? PromoteComplexWithFloating<A, B>
+        : A
+    : B extends ComplexDType
+      ? A extends FloatingDType
+        ? PromoteComplexWithFloating<B, A>
+        : B
+      : A extends FloatingDType
+        ? B extends FloatingDType
+          ? PromoteFloating<A, B>
           : A
-      : B extends ComplexDType
-        ? A extends FloatingDType
-          ? PromoteComplexWithFloating<B, A>
-          : B
-        : A extends FloatingDType
-          ? B extends FloatingDType
-            ? PromoteFloating<A, B>
-            : A
-          : B extends FloatingDType
+        : B extends FloatingDType
+          ? B
+          : A extends 'bool'
             ? B
-            : A extends 'bool'
-              ? B
-              : B extends 'bool'
-                ? A
-                : A extends IntegralDType
-                  ? B extends IntegralDType
-                    ? PromoteIntegral<A, B>
-                    : never
-                  : never;
+            : B extends 'bool'
+              ? A
+              : A extends IntegralDType
+                ? B extends IntegralDType
+                  ? PromoteIntegral<A, B>
+                  : never
+                : never;
 
 /**
  * PyTorch dtype promotion for two dimensioned tensor operands.
@@ -186,3 +196,90 @@ export type AllowedCastTargets<From extends DType> =
             From extends ComplexDType
             ? ComplexDType
             : never;
+
+type TensorDType<T extends Tensor> =
+  T extends Tensor<any, infer TDType, any> ? TDType : never;
+
+type IsExactly<A, B> = [A] extends [B]
+  ? [B] extends [A]
+    ? true
+    : false
+  : false;
+
+/**
+ * Combines the current accumulated dtype with the next dtype.
+ *
+ * Identical dtypes need no promotion. This matters for shell and quantized
+ * dtypes, for which PromoteDType<T, T> may be `never` even though cat can
+ * concatenate tensors already having the same dtype.
+ */
+type CatPromoteDType<A extends DType, B extends DType> =
+  IsExactly<A, B> extends true ? A : PromoteDType<A, B>;
+
+type FoldPromotedDType<
+  TTensors extends readonly Tensor[],
+  TAccumulated extends DType
+> = TTensors extends readonly [
+  infer First extends Tensor,
+  ...infer Rest extends readonly Tensor[]
+]
+  ? CatPromoteDType<TAccumulated, TensorDType<First>> extends infer TNext
+    ? [TNext] extends [never]
+      ? never
+      : TNext extends DType
+        ? FoldPromotedDType<Rest, TNext>
+        : never
+    : never
+  : TAccumulated;
+
+/**
+ * The dtype produced by cat, or `never` when the tensors do not have a
+ * common promotable dtype.
+ *
+ * The empty tuple has no resulting dtype, so it returns `never`.
+ */
+export type ManyPromotedDType<TTensors extends readonly Tensor[]> =
+  TTensors extends readonly [
+    infer First extends Tensor,
+    ...infer Rest extends readonly Tensor[]
+  ]
+    ? FoldPromotedDType<Rest, TensorDType<First>>
+    : never;
+
+/**
+ * Returns 1 when cat can determine a common dtype for the entire tuple,
+ * otherwise 0.
+ *
+ * An empty tuple returns 1 here, matching the identity convention in the
+ * question, although torch.cat itself requires a non-empty tensor list.
+ */
+export type AreAllDTypesPromotable<TTensors extends readonly Tensor[]> =
+  TTensors extends readonly []
+    ? 1
+    : [ManyPromotedDType<TTensors>] extends [never]
+      ? 0
+      : 1;
+
+export type DTypeRealOf<T extends DType> = T extends 'complex32'
+  ? 'float16'
+  : T extends 'complex64'
+    ? 'float32'
+    : T extends 'complex128'
+      ? 'float64'
+      : T;
+
+type DTypeByLetter = {
+  B: BoolDType;
+  I: IntegralDType;
+  F: FloatingDType;
+  H: HalfPrecisionComplexDType;
+  C: ComplexDType;
+};
+
+export type DType_<Letters extends string, Result = never> = Letters extends ''
+  ? Result
+  : Letters extends `${infer Letter}${infer Rest}`
+    ? Letter extends keyof DTypeByLetter
+      ? DType_<Rest, Result | DTypeByLetter[Letter]>
+      : never
+    : never;

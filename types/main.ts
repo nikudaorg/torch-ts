@@ -1,54 +1,27 @@
-import { And, Bit, Eq, Not, Or, Subtract } from 'ts-arithmetic';
-import { PromoteDType } from './type-promotion';
+import {
+  Add,
+  And,
+  Bit,
+  Eq,
+  Gt,
+  GtOrEq,
+  IsInt,
+  IsNotInt,
+  Lt,
+  LtOrEq,
+  Negate,
+  Not,
+  Or,
+  Subtract
+} from 'ts-arithmetic';
+import { AreAllDTypesPromotable, DType, PromoteDType } from './type-promotion';
 import { HKT, Input, Reduce } from 'yet-another-hkt';
+import { NormalizeIndex, RemoveElements, SetElements } from './tuples';
 
 export type Shape = number[];
-export type DType =
-  // Boolean
-  | 'bool'
 
-  // Unsigned integers
-  | 'uint1'
-  | 'uint2'
-  | 'uint3'
-  | 'uint4'
-  | 'uint5'
-  | 'uint6'
-  | 'uint7'
-  | 'uint8'
-  | 'uint16'
-  | 'uint32'
-  | 'uint64'
 
-  // Signed integers
-  | 'int8'
-  | 'int16'
-  | 'int32'
-  | 'int64'
-
-  // Floating point
-  | 'float4_e2m1fn_x2'
-  | 'float8_e4m3fn'
-  | 'float8_e4m3fnuz'
-  | 'float8_e5m2'
-  | 'float8_e5m2fnuz'
-  | 'float8_e8m0fnu'
-  | 'float16'
-  | 'bfloat16'
-  | 'float32'
-  | 'float64'
-
-  // Complex
-  | 'complex32'
-  | 'complex64'
-  | 'complex128'
-
-  // Quantized
-  | 'qint8'
-  | 'quint8'
-  | 'qint32'
-  | 'quint4x2'
-  | 'quint2x4';
+export type DefaultableDType = 'float16' | 'bfloat16' | 'float32' | 'float64';
 
 export type Device = string;
 
@@ -63,10 +36,24 @@ export interface Tensor<
   device: TDevice;
 }
 
-export type Scalar<
-  TDType extends DType = DType,
-  TDevice extends Device = Device
-> = Tensor<[], TDType, TDevice>;
+export type Scalar<TDevice extends Device = Device> =
+  | Tensor<[], DType, TDevice>
+  | number
+  | boolean;
+
+export type ScalarGetDType<TScalar extends Scalar> =
+  TScalar extends Tensor<infer _, infer TDType, infer _>
+    ? TDType
+    : Scalar extends boolean
+      ? 'bool'
+      : TScalar extends number
+        ? IsInt<TScalar> extends 1
+          ? 'int64'
+          : undefined
+        : never;
+
+export type ScalarGetDevice<TScalar extends Scalar> =
+  TScalar extends Tensor<infer _, infer _, infer TDevice> ? TDevice : undefined;
 
 type GetShape<T extends Tensor> =
   T extends Tensor<infer TShape extends Shape, infer _, infer _>
@@ -75,10 +62,14 @@ type GetShape<T extends Tensor> =
 
 type IsNever<A> = [A] extends [never] ? 1 : 0;
 
-type If<A extends Bit, B, C> = A extends 1 ? B : A extends 0 ? C : B | C;
+export type If<A extends Bit | boolean, B, C> = A extends 1 | true
+  ? B
+  : A extends 0 | false
+    ? C
+    : B | C;
 
 type Extends<A, B> = A extends B ? 1 : 0;
-type Equiv<A, B> = And<Extends<A, B>, Extends<B, A>>;
+export type Equiv<A, B> = And<Extends<A, B>, Extends<B, A>>;
 
 type IfExtends<A, B, C, D> = A extends B ? C : D;
 
@@ -89,7 +80,7 @@ export type Broadcast<S1 extends Shape, S2 extends Shape> =
 
 type Assume<T, U> = T extends U ? T : never;
 
-type Last<L extends unknown[]> = L extends [...infer _, infer Last]
+export type Last<L extends unknown[]> = L extends [...infer _, infer Last]
   ? Last
   : never;
 type Pop<L extends unknown[]> = L extends [...infer Rest, infer _]
@@ -139,7 +130,7 @@ type RenderShape<S extends Shape> = `(${Reduce<
   S
 >})`;
 
-export type SimpleValidate<T1 extends Tensor, T2 extends Tensor> = If<
+export type SimpleValidate<T1 extends Tensor, T2 extends Tensor, IfOk = []> = If<
   IsNever<Broadcast<T1['shape'], T2['shape']>>,
   [
     `Error: the size of tensor a ${RenderShape<T1['shape']>} must be broadcastable to the size of tensor b ${RenderShape<T2['shape']>}`
@@ -154,17 +145,308 @@ export type SimpleValidate<T1 extends Tensor, T2 extends Tensor> = If<
       [
         `Error: the tensors must share the same device, currently a.device=${T1['device']}, b.device=${T2['device']}`
       ],
-      []
+      IfOk
     >
   >
 >;
 
-export type Simple<T1 extends Tensor, T2 extends Tensor> = If<
-  Equiv<SimpleValidate<T1, T2>, []>,
+export type Simple<T1 extends Tensor, T2 extends Tensor> = SimpleValidate<
+  T1,
+  T2,
   Tensor<
     Assume<Broadcast<T1['shape'], T2['shape']>, Shape>,
     PromoteDType<T1['dtype'], T2['dtype']>,
     T1['device']
+  >
+>;
+
+export type PickDefined<
+  T,
+  A extends (T | undefined)[],
+  Default extends T
+> = Assume<
+  A extends [
+    infer First extends T | undefined,
+    ...infer Rest extends (T | undefined)[]
+  ]
+    ? Equiv<First, undefined> extends 1
+      ? PickDefined<T, Rest, Default>
+      : First
+    : Default,
+  T
+>;
+
+// type PickDefined<A extends unknown[], Default> = Assume<
+//   PickDefined_<A, Default>
+// >;
+
+export type SimpleConstructor<
+  S extends Shape,
+  TDType extends DType,
+  TDevice extends Device
+> = Tensor<S, TDType, TDevice>;
+
+export type Floor<N extends number> = `${N}` extends `-0.${string}`
+  ? -1
+  : `${N}` extends `${infer Before extends number}.${string}`
+    ? If<Lt<N, 0>, Subtract<Before, 1>, Before>
+    : N;
+
+export type Ceil<N extends number> = `${N}` extends `-0.${string}`
+  ? 0
+  : `${N}` extends `${infer Before extends number}.${string}`
+    ? If<Lt<N, 0>, Before, Add<Before, 1>>
+    : N;
+
+export type IsValidShape<S extends Shape> = S extends [
+  infer First extends number,
+  ...infer Rest extends number[]
+]
+  ? And<IsInt<First>, And<GtOrEq<First, 0>, IsValidShape<Rest>>>
+  : 1;
+
+export type ValidateShape<S extends Shape, IfOk = []> = If<
+  IsValidShape<S>,
+  IfOk,
+  ['Error: shape must be a list of positive integers']
+>;
+
+export type ValidateDimension<
+  S extends Shape,
+  TDim extends number,
+  TIncludeNext extends Bit,
+  IfOk = []
+> = If<
+  IsNotInt<TDim>,
+  [`Error: non-integer dimension`],
+  If<
+    TIncludeNext,
+    If<
+      Or<
+        Lt<TDim, Subtract<-1, S['length']>>,
+        GtOrEq<TDim, Add<S['length'], 1>>
+      >,
+      [
+        `Error: Dimension out of range (expected to be in range of [${Subtract<-1, S['length']>}, ${S['length']}], but got ${TDim})`
+      ],
+      IfOk
+    >,
+    If<
+      Or<Lt<TDim, Negate<S['length']>>, GtOrEq<TDim, S['length']>>,
+      [
+        `Error: Dimension out of range (expected to be in range of [${Negate<S['length']>}, ${Subtract<S['length'], 1>}], but got ${TDim})`
+      ],
+      IfOk
+    >
+  >
+>;
+
+type HasRepetitions<
+  L extends number[],
+  Acc extends number = never
+> = L extends [infer First extends number, ...infer Rest extends number[]]
+  ? First extends Acc
+    ? 1
+    : HasRepetitions<Rest, Acc | First>
+  : 0;
+
+export type ValidateDim_<
+  S extends Shape,
+  TDim extends number[] | number,
+  TIncludeNext extends Bit
+> = TDim extends number[]
+  ? If<
+      HasRepetitions<TDim>,
+      ['Error: the dimensions must not repeat'],
+      TDim extends [infer First extends number, ...infer Rest extends number[]]
+        ? [
+            ...ValidateDimension<S, First, TIncludeNext>,
+            ...ValidateDim_<S, Rest, TIncludeNext>
+          ]
+        : []
+    >
+  : TDim extends number
+    ? ValidateDimension<S, TDim, TIncludeNext>
+    : never;
+
+export type ValidateDim<
+  S extends Shape,
+  TDim extends number[] | number,
+  TIncludeNext extends Bit,
+  IfOk = []
+> =
+  Equiv<TDim, []> extends 1
+    ? ['Error: the list of dimensions must not be empty']
+    : ValidateDim_<S, TDim, TIncludeNext> extends []
+      ? IfOk
+      : ValidateDim_<S, TDim, TIncludeNext>;
+
+export type Reduced<
+  S extends Shape,
+  TInputDType extends DType,
+  TInputDevice extends Device,
+  TDim extends number[] | number | undefined = undefined,
+  TKeepDim extends boolean | undefined = undefined,
+  TDType extends DType | undefined = undefined,
+  AllowKeepDimNoDim extends Bit = 0
+> = ReducedValidate<
+  S,
+  TDim,
+  TKeepDim,
+  Tensor<
+    TDim extends number[]
+      ? If<
+          PickDefined<boolean, [TKeepDim], false>,
+          SetElements<S, TDim, 1>,
+          RemoveElements<S, TDim>
+        >
+      : TDim extends number
+        ? If<
+            PickDefined<boolean, [TKeepDim], false>,
+            SetElements<S, [TDim], 1>,
+            RemoveElements<S, [TDim]>
+          >
+        : [],
+    PickDefined<DType, [TDType], TInputDType>,
+    TInputDevice
   >,
-  SimpleValidate<T1, T2>
+  AllowKeepDimNoDim
+>;
+type ToBit<A extends boolean> = A extends true
+  ? 1
+  : A extends false
+    ? 0
+    : never;
+
+export type ReducedValidate<
+  S extends Shape,
+  TDim extends number[] | number | undefined = undefined,
+  TKeepDim extends boolean | undefined = undefined,
+  IfOk = [],
+  AllowKeepDimNoDim extends Bit = 0
+> = TDim extends number[] | number
+  ? ValidateDim<S, TDim, 0, IfOk>
+  : If<
+      And<Equiv<TKeepDim, true>, Not<AllowKeepDimNoDim>>,
+      ['Error: cannot set keepdim to true, when dimensions are not specified.'],
+      IfOk
+    >;
+
+export type SumDimNOfTensors<
+  TTensors extends Tensor[],
+  TDim extends number
+> = TTensors extends [
+  infer First extends Tensor,
+  ...infer Rest extends Tensor[]
+]
+  ? Add<
+      First['shape'][NormalizeIndex<TDim, First['shape']['length']>],
+      SumDimNOfTensors<Rest, TDim>
+    >
+  : 0;
+
+export type AreAllSameKey<
+  TTensors extends Tensor[],
+  TValue extends Device = TTensors[0]['device']
+> = TTensors extends [
+  infer First extends Tensor,
+  ...infer Rest extends Tensor[]
+]
+  ? And<Equiv<First['device'], TValue>, AreAllSameKey<Rest, TValue>>
+  : 1;
+
+export type AreAllSameShapeExceptDim<
+  TTensors extends Tensor[],
+  TDim extends number,
+  TValue extends Shape = SetElements<TTensors[0]['shape'], [TDim], 'skip'>
+> = TTensors extends [
+  infer First extends Tensor,
+  ...infer Rest extends Tensor[]
+]
+  ? And<
+      Equiv<SetElements<First['shape'], [TDim], 'skip'>, TValue>,
+      AreAllSameShapeExceptDim<Rest, TDim, TValue>
+    >
+  : 1;
+
+export type AreAllSameShape<
+  TTensors extends Tensor[],
+  TValue extends Shape = TTensors[0]['shape']
+> = TTensors extends [
+  infer First extends Tensor,
+  ...infer Rest extends Tensor[]
+]
+  ? And<Equiv<First['shape'], TValue>, AreAllSameShape<Rest, TValue>>
+  : 1;
+
+export type ValidateAllSameDevice<TTensors extends Tensor[], IfOk = []> = If<
+  AreAllSameKey<TTensors>,
+  IfOk,
+  ['Error: all tensors must be on the same device.']
+>;
+
+export type ValidateAllSameShapeExceptDim<
+  TTensors extends Tensor[],
+  TDim extends number,
+  IfOk = []
+> = If<
+  AreAllSameShapeExceptDim<TTensors, TDim>,
+  IfOk,
+  [
+    'Error: all tensors must have the same shape except for the dimension of concatention'
+  ]
+>;
+
+export type ValidateAllSameShape<TTensors extends Tensor[], IfOk = []> = If<
+  AreAllSameShape<TTensors>,
+  IfOk,
+  ['Error: all tensors must have the same shape']
+>;
+
+export type ValidateManyDTypes<TTensors extends Tensor[], IfOk = []> = If<
+  AreAllDTypesPromotable<TTensors>,
+  IfOk,
+  [
+    "Error: couldn't promote the dtypes, cast the tensors to the intended dtypes explicitly"
+  ]
+>;
+
+type CIfAEquivBElseA<A, B, C> = If<Equiv<A, B>, C, A>;
+
+export type CatValidate<
+  TTensors extends Tensor[],
+  TDim extends number | undefined,
+  IfOk = []
+> = CIfAEquivBElseA<
+  [
+    ...ValidateAllSameDevice<TTensors>,
+    ...ValidateManyDTypes<TTensors>,
+    ...ValidateAllSameShapeExceptDim<TTensors, PickDefined<number, [TDim], 0>>,
+    ...ValidateDimension<
+      Last<TTensors>['shape'],
+      PickDefined<number, [TDim], 0>,
+      0
+    >
+  ],
+  [],
+  IfOk
+>;
+
+export type StackValidate<
+  TTensors extends Tensor[],
+  TDim extends number | undefined,
+  IfOk = []
+> = CIfAEquivBElseA<
+  [
+    ...ValidateAllSameDevice<TTensors>,
+    ...ValidateManyDTypes<TTensors>,
+    ...ValidateAllSameShape<TTensors>,
+    ...ValidateDimension<
+      Last<TTensors>['shape'],
+      PickDefined<number, [TDim], 0>,
+      1
+    >
+  ],
+  [],
+  IfOk
 >;
