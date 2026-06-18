@@ -75,3 +75,9 @@ export type DimensionsValidate<
     : DimensionsValidateInner<S, TDim, TType> extends []
       ? Ok
       : DimensionsValidateInner<S, TDim, TType>;
+
+export type DimensionsFValidate<
+  S extends Shape,
+  TDim extends number[] | number,
+  TType extends 'existing' | 'new'
+> = FValidator<DimensionsValidate<S, TDim, TType>>;

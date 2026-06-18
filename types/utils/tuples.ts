@@ -118,3 +118,15 @@ export type HasDuplicates<
     ? 1
     : HasDuplicates<Rest, Acc | First>
   : 0;
+
+export type SwapElements<
+  L extends unknown[],
+  I extends number,
+  J extends number
+> = {
+  [N in keyof L]: N extends NormalizeIndex<I, L['length']>
+    ? L[NormalizeIndex<J, L['length']>]
+    : N extends NormalizeIndex<J, L['length']>
+      ? L[NormalizeIndex<I, L['length']>]
+      : L[N];
+};
