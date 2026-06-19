@@ -1,15 +1,6 @@
 import { API } from './types/api';
-import {
-  Equiv,
-  ReducedValidate,
-  ValidateDim,
-  ValidateDim_,
-  ValidateDimension
-} from './types/main';
-import { SetElements } from './types/utils/tuples';
-import { AreAllDTypesPromotable } from './types/basic/dtype';
 
-declare const t: API<'float32', 'cpu'>;
+declare const t: API<'float32', 'cpu', 'sync'>;
 
 // 1. Basic concatenation along the first dimension.
 // Expected: shape [6, 4], dtype float32, device cpu.
