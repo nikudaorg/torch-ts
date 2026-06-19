@@ -1,17 +1,14 @@
-import { createAPI } from '.';
+import { createAPI } from './index.ts';
 
 const torch = createAPI({
-  defaultDType: 'float32',
-  defaultDevice: 'cpu',
+  defaultDType: 'float16',
+  defaultDevice: 'cuda',
   pythonPath: './testing-python/.venv/bin/python'
 });
 
-const tensor1 = await torch.ones([2, 3]);
-const tensor2 = await torch.full([], 5);
-const tensor3 = await torch.add(tensor1, tensor2);
-
-console.log(tensor1.toString());
-console.log(tensor2.toString());
-console.log(tensor3.toString());
+const a = await torch.ones([2, 5]);
+const b = await torch.full([2, 3], 4);
+const c = await torch.cat([a, b], -1); // hovering in your IDE shows Tensor<[2, 8], 'float16', 'cuda'>
+torch.cat([a, b], 0); // all tensors must have the same shape except for the dimension of concatention
 
 await torch.close();
