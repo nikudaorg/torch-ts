@@ -1,4 +1,4 @@
-import { Broadcast } from './types/main';
+import { Broadcast } from './types/basic/shape';
 
 type Equal<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2

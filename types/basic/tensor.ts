@@ -8,10 +8,11 @@ export interface Tensor<
   TDType extends DType = DType,
   TDevice extends Device = Device
 > {
-  kind: 'Tensor';
-  shape: TShape;
-  dtype: TDType;
-  device: TDevice;
+  readonly kind: 'Tensor';
+  readonly shape: TShape;
+  readonly dtype: TDType;
+  readonly device: TDevice;
+  toString(): string;
 }
 
 export type Scalar<TDevice extends Device = Device> =

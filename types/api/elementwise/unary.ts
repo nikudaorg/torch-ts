@@ -2,11 +2,12 @@ import { Device } from '../../basic/device';
 import { DTypeRealOf, GetDType } from '../../basic/dtype';
 import { Shape } from '../../basic/shape';
 import { Tensor } from '../../basic/tensor';
-import { DefaultableDType } from '../main';
+import { DefaultableDType, MaybeAsync } from '../main';
 
 export interface ElementWiseUnaryAPI<
   DefaultDType extends DefaultableDType,
-  DefaultDevice extends Device
+  DefaultDevice extends Device,
+  SyncType extends 'sync' | 'async'
 > {
   abs: <
     TShape extends Shape,
@@ -14,23 +15,26 @@ export interface ElementWiseUnaryAPI<
     TDevice extends Device
   >(
     input: Tensor<TShape, TDType, TDevice>
-  ) => Tensor<
-    TShape,
-    TDType extends GetDType<'IF'> ? TDType : DTypeRealOf<TDType>,
-    TDevice
+  ) => MaybeAsync<
+    Tensor<
+      TShape,
+      TDType extends GetDType<'IF'> ? TDType : DTypeRealOf<TDType>,
+      TDevice
+    >,
+    SyncType
   >;
 
   neg: <TTensor extends Tensor<Shape, GetDType<'IFCH'>>>(
     input: TTensor
-  ) => TTensor;
+  ) => MaybeAsync<TTensor, SyncType>;
 
   sign: <TTensor extends Tensor<Shape, GetDType<'BIF'>>>(
     input: TTensor
-  ) => TTensor;
+  ) => MaybeAsync<TTensor, SyncType>;
 
   sgn: <TTensor extends Tensor<Shape, GetDType<'BIFCH'>>>(
     input: TTensor
-  ) => TTensor;
+  ) => MaybeAsync<TTensor, SyncType>;
 
   reciprocal: <
     TShape extends Shape,
@@ -38,10 +42,13 @@ export interface ElementWiseUnaryAPI<
     TDevice extends Device
   >(
     input: Tensor<TShape, TDType, TDevice>
-  ) => Tensor<
-    TShape,
-    TDType extends GetDType<'BI'> ? DefaultDType : TDType,
-    TDevice
+  ) => MaybeAsync<
+    Tensor<
+      TShape,
+      TDType extends GetDType<'BI'> ? DefaultDType : TDType,
+      TDevice
+    >,
+    SyncType
   >;
 
   square: <
@@ -50,7 +57,10 @@ export interface ElementWiseUnaryAPI<
     TDevice extends Device
   >(
     input: Tensor<TShape, TDType, TDevice>
-  ) => Tensor<TShape, TDType extends GetDType<'B'> ? 'int64' : TDType, TDevice>;
+  ) => MaybeAsync<
+    Tensor<TShape, TDType extends GetDType<'B'> ? 'int64' : TDType, TDevice>,
+    SyncType
+  >;
 
   sqrt: this['reciprocal'];
 
@@ -77,10 +87,13 @@ export interface ElementWiseUnaryAPI<
   >(
     input: Tensor<TShape, TDType, TDevice>,
     eps?: number | null
-  ) => Tensor<
-    TShape,
-    TDType extends GetDType<'BI'> ? DefaultDType : TDType,
-    TDevice
+  ) => MaybeAsync<
+    Tensor<
+      TShape,
+      TDType extends GetDType<'BI'> ? DefaultDType : TDType,
+      TDevice
+    >,
+    SyncType
   >;
 
   sigmoid: this['sqrt'];
@@ -111,7 +124,7 @@ export interface ElementWiseUnaryAPI<
 
   ceil: <TTensor extends Tensor<Shape, GetDType<'IF'>>>(
     input: TTensor
-  ) => TTensor;
+  ) => MaybeAsync<TTensor, SyncType>;
 
   floor: this['ceil'];
 
@@ -127,13 +140,13 @@ export interface ElementWiseUnaryAPI<
   >(
     input: Tensor<TShape, TDType, TDevice>,
     decimals?: TDecimals
-  ) => Tensor<TShape, TDType, TDevice>;
+  ) => MaybeAsync<Tensor<TShape, TDType, TDevice>, SyncType>;
 
   trunc: this['ceil'];
 
   frac: <TTensor extends Tensor<Shape, GetDType<'F'>>>(
     input: TTensor
-  ) => TTensor;
+  ) => MaybeAsync<TTensor, SyncType>;
 
   logical_not: <
     TShape extends Shape,
@@ -141,11 +154,11 @@ export interface ElementWiseUnaryAPI<
     TDevice extends Device
   >(
     input: Tensor<TShape, TDType, TDevice>
-  ) => Tensor<TShape, GetDType<'B'>, TDevice>;
+  ) => MaybeAsync<Tensor<TShape, GetDType<'B'>, TDevice>, SyncType>;
 
   bitwise_not: <TTensor extends Tensor<Shape, GetDType<'BI'>>>(
     input: TTensor
-  ) => TTensor;
+  ) => MaybeAsync<TTensor, SyncType>;
 
   isnan: this['logical_not'];
 
@@ -155,7 +168,7 @@ export interface ElementWiseUnaryAPI<
     TDevice extends Device
   >(
     input: Tensor<TShape, TDType, TDevice>
-  ) => Tensor<TShape, GetDType<'B'>, TDevice>;
+  ) => MaybeAsync<Tensor<TShape, GetDType<'B'>, TDevice>, SyncType>;
 
   isfinite: this['isinf'];
 
@@ -167,7 +180,7 @@ export interface ElementWiseUnaryAPI<
     TDevice extends Device
   >(
     input: Tensor<TShape, TDType, TDevice>
-  ) => Tensor<TShape, GetDType<'B'>, TDevice>;
+  ) => MaybeAsync<Tensor<TShape, GetDType<'B'>, TDevice>, SyncType>;
 
   isneginf: this['isposinf'];
 
@@ -177,15 +190,18 @@ export interface ElementWiseUnaryAPI<
     TDevice extends Device
   >(
     input: Tensor<TShape, TDType, TDevice>
-  ) => Tensor<
-    TShape,
-    TDType extends GetDType<'BI'> ? DefaultDType : DTypeRealOf<TDType>,
-    TDevice
+  ) => MaybeAsync<
+    Tensor<
+      TShape,
+      TDType extends GetDType<'BI'> ? DefaultDType : DTypeRealOf<TDType>,
+      TDevice
+    >,
+    SyncType
   >;
 
   conj: <TTensor extends Tensor<Shape, GetDType<'BIFCH'>>>(
     input: TTensor
-  ) => TTensor;
+  ) => MaybeAsync<TTensor, SyncType>;
 
   real: <
     TShape extends Shape,
@@ -193,7 +209,7 @@ export interface ElementWiseUnaryAPI<
     TDevice extends Device
   >(
     input: Tensor<TShape, TDType, TDevice>
-  ) => Tensor<TShape, DTypeRealOf<TDType>, TDevice>;
+  ) => MaybeAsync<Tensor<TShape, DTypeRealOf<TDType>, TDevice>, SyncType>;
 
   imag: <
     TShape extends Shape,
@@ -201,7 +217,7 @@ export interface ElementWiseUnaryAPI<
     TDevice extends Device
   >(
     input: Tensor<TShape, TDType, TDevice>
-  ) => Tensor<TShape, DTypeRealOf<TDType>, TDevice>;
+  ) => MaybeAsync<Tensor<TShape, DTypeRealOf<TDType>, TDevice>, SyncType>;
 
   erf: <
     TShape extends Shape,
@@ -209,10 +225,13 @@ export interface ElementWiseUnaryAPI<
     TDevice extends Device
   >(
     input: Tensor<TShape, TDType, TDevice>
-  ) => Tensor<
-    TShape,
-    TDType extends GetDType<'BI'> ? DefaultDType : TDType,
-    TDevice
+  ) => MaybeAsync<
+    Tensor<
+      TShape,
+      TDType extends GetDType<'BI'> ? DefaultDType : TDType,
+      TDevice
+    >,
+    SyncType
   >;
 
   erfc: this['erf'];

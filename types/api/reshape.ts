@@ -27,7 +27,8 @@ import {
 
 export interface ReshapeAPI<
   DefaultDType extends DefaultableDType,
-  DefaultDevice extends Device
+  DefaultDevice extends Device,
+  SyncType extends 'async' | 'sync'
 > {
   unsqueeze: <
     const S extends Shape,
@@ -40,7 +41,8 @@ export interface ReshapeAPI<
     ...error: DimensionFValidate<S, TDim, 'new'>
   ) => IfOk<
     DimensionValidate<S, TDim, 'new'>,
-    Tensor<InsertElements<S, [TDim], 1>, TInputDType, TInputDevice>
+    Tensor<InsertElements<S, [TDim], 1>, TInputDType, TInputDevice>,
+    SyncType
   >;
 
   squeeze: <
@@ -56,7 +58,8 @@ export interface ReshapeAPI<
     SqueezeValidate<S, TDim>,
     TDim extends number[] | number
       ? Tensor<SqueezeAt<S, TDim>, TInputDType, TInputDevice>
-      : Tensor<SqueezeAll<S>, TInputDType, TInputDevice>
+      : Tensor<SqueezeAll<S>, TInputDType, TInputDevice>,
+    SyncType
   >;
 
   transpose: <
@@ -72,7 +75,8 @@ export interface ReshapeAPI<
     ...error: FValidator<TransposeValidate<S, TDim0, TDim1>>
   ) => IfOk<
     TransposeValidate<S, TDim0, TDim1>,
-    Tensor<SwapElements<S, TDim0, TDim1>, TInputDType, TInputDevice>
+    Tensor<SwapElements<S, TDim0, TDim1>, TInputDType, TInputDevice>,
+    SyncType
   >;
 
   //   repeat: <
@@ -106,7 +110,8 @@ export interface ReshapeAPI<
       >,
       ManyPromotedDType<TTensors>,
       Last<TTensors>['device']
-    >
+    >,
+    SyncType
   >;
 
   stack: <
@@ -126,7 +131,8 @@ export interface ReshapeAPI<
       >,
       ManyPromotedDType<TTensors>,
       Last<TTensors>['device']
-    >
+    >,
+    SyncType
   >;
 }
 

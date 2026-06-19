@@ -1,7 +1,7 @@
 import { And, Divide, IsInt, Max, Subtract } from 'ts-arithmetic';
 import { DType } from '../basic/dtype';
 import { FirstDefined, If } from '../utils/control';
-import { DefaultableDType } from './main';
+import { DefaultableDType, MaybeAsync } from './main';
 import { Ceil } from '../utils/math';
 import { ShapeFValidate } from './miscValidators';
 import { IfOk } from './error';
@@ -16,7 +16,8 @@ import { Device } from '../basic/device';
 
 export interface ConstructorsAPI<
   DefaultDType extends DefaultableDType,
-  DefaultDevice extends Device
+  DefaultDevice extends Device,
+  SyncType extends 'sync' | 'async'
 > {
   zeros: <
     const S extends Shape,
@@ -32,7 +33,8 @@ export interface ConstructorsAPI<
     Result<
       S,
       FirstDefined<DType, [TDType], DefaultDType>,
-      FirstDefined<Device, [TDevice], DefaultDevice>
+      FirstDefined<Device, [TDevice], DefaultDevice>,
+      SyncType
     >
   >;
 
@@ -56,7 +58,8 @@ export interface ConstructorsAPI<
     Result<
       S,
       FirstDefined<DType, [TDType, ScalarGetDType<TScalar>], DefaultDType>,
-      FirstDefined<Device, [TDevice, ScalarGetDevice<TScalar>], DefaultDevice>
+      FirstDefined<Device, [TDevice, ScalarGetDevice<TScalar>], DefaultDevice>,
+      SyncType
     >
   >;
 
@@ -73,7 +76,8 @@ export interface ConstructorsAPI<
   ) => Result<
     S,
     FirstDefined<DType, [TDType], TInputDType>,
-    FirstDefined<Device, [TDevice], TInputDevice>
+    FirstDefined<Device, [TDevice], TInputDevice>,
+    SyncType
   >;
 
   ones_like: this['zeros_like'];
@@ -101,12 +105,14 @@ export interface ConstructorsAPI<
         DefaultDType
       >
     >,
-    FirstDefined<Device, [TDevice], DefaultDevice>
+    FirstDefined<Device, [TDevice], DefaultDevice>,
+    SyncType
   >;
 }
 
 export type Result<
   S extends Shape,
   TDType extends DType,
-  TDevice extends Device
-> = Tensor<S, TDType, TDevice>;
+  TDevice extends Device,
+  SyncType extends 'sync' | 'async' = 'sync'
+> = MaybeAsync<Tensor<S, TDType, TDevice>, SyncType>;

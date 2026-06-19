@@ -11,7 +11,8 @@ import { Err, FValidator, IfOk, Ok } from './error';
 
 export interface ReducersAPI<
   DefaultDType extends DefaultableDType,
-  DefaultDevice extends Device
+  DefaultDevice extends Device,
+  SyncType extends 'sync' | 'async'
 > {
   sum: <
     const S extends Shape,
@@ -26,7 +27,7 @@ export interface ReducersAPI<
     keepdim?: TKeepDim,
     dtype?: TDType,
     ...error: ReducerFValidate<S, TDim, TKeepDim>
-  ) => Reduced<S, TInputDType, TInputDevice, TDim, TKeepDim, TDType>;
+  ) => Result<S, TInputDType, TInputDevice, TDim, TKeepDim, TDType, SyncType>;
 
   mean: this['sum'];
   prod: this['sum'];
@@ -44,16 +45,26 @@ export interface ReducersAPI<
     keepdim?: TKeepDim,
     dtype?: TDType,
     ...error: ReducerFValidate<S, TDim, TKeepDim, 1>
-  ) => Reduced<S, TInputDType, TInputDevice, TDim, TKeepDim, TDType, 1>;
+  ) => Result<
+    S,
+    TInputDType,
+    TInputDevice,
+    TDim,
+    TKeepDim,
+    TDType,
+    SyncType,
+    1
+  >;
   nanprod: this['nansum'];
 }
-export type Reduced<
+export type Result<
   S extends Shape,
   TInputDType extends DType,
   TInputDevice extends Device,
-  TDim extends number[] | number | undefined = undefined,
-  TKeepDim extends boolean | undefined = undefined,
-  TDType extends DType | undefined = undefined,
+  TDim extends number[] | number | undefined,
+  TKeepDim extends boolean | undefined,
+  TDType extends DType | undefined,
+  SyncType extends 'sync' | 'async',
   AllowKeepDimNoDim extends Bit = 0
 > = IfOk<
   ReducerValidate<S, TDim, TKeepDim, AllowKeepDimNoDim>,
@@ -73,7 +84,8 @@ export type Reduced<
         : [],
     FirstDefined<DType, [TDType], TInputDType>,
     TInputDevice
-  >
+  >,
+  SyncType
 >;
 
 type ReducerValidate<

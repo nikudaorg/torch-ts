@@ -1,26 +1,17 @@
-import { API } from './types/api';
-import {
-  Equiv,
-  ReducedValidate,
-  ValidateDim,
-  ValidateDim_,
-  ValidateDimension
-} from './types/main';
-import { AreAllDTypesPromotable } from './types/basic/dtype';
+import { createAPI } from '.';
 
-declare const t: API<'float32', 'cpu'>;
+const torch = createAPI({
+  defaultDType: 'float32',
+  defaultDevice: 'cpu',
+  pythonPath: './testing-python/.venv/bin/python'
+});
 
-const abc = t.zeros([3, 4], 'float32', 'cpu');
+const tensor1 = await torch.ones([2, 3]);
+const tensor2 = await torch.full([], 5);
+const tensor3 = await torch.add(tensor1, tensor2);
 
-const a = t.cat([abc, abc], 0);
+console.log(tensor1.toString());
+console.log(tensor2.toString());
+console.log(tensor3.toString());
 
-const b = t.stack([abc, abc], -4);
-
-const c = t.isnan(abc);
-
-type A = ValidateDim_<[3, 3], [3], 0>;
-
-type C = ValidateDimension<[3, 3], 3, 0>;
-
-type B = Equiv<[0], []>;
-
+await torch.close();

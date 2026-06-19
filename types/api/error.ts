@@ -1,3 +1,5 @@
+import { MaybeAsync } from './main';
+
 export type Err<Message extends string> = {
   kind: 'Err';
   message: Message;
@@ -14,7 +16,8 @@ export type FValidator<T extends ValidationResult> =
 
 export type IsOk<T extends ValidationResult> = T extends Err<infer _> ? 0 : 1;
 
-export type IfOk<T, Otherwise> = T extends Err<infer _> ? T : Otherwise;
+export type IfOk<T, S, SyncType extends 'sync' | 'async' = 'sync'> =
+  T extends Err<infer _> ? T : MaybeAsync<S, SyncType>;
 
 export type ValidationLadder<TResults extends ValidationResult[]> =
   TResults extends [

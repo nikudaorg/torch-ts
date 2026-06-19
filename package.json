@@ -1,9 +1,16 @@
 {
+	"type": "module",
 	"dependencies": {
 		"ts-arithmetic": "^0.1.1",
+		"tsx": "^4.22.4",
 		"yet-another-hkt": "^0.1.0"
 	},
 	"devDependencies": {
+		"@types/node": "^25.9.3",
 		"typescript": "^6.0.3"
+	},
+	"scripts": {
+		"test:runtime": "node runtime/runtime.test.ts",
+		"typecheck:runtime": "tsc -p tsconfig.runtime.json"
 	}
 }

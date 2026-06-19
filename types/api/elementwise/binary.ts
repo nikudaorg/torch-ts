@@ -10,14 +10,15 @@ import { Device } from '../../basic/device';
 
 export interface ElementWiseBinaryAPI<
   DefaultDType extends DefaultableDType,
-  DefaultDevice extends Device
+  DefaultDevice extends Device,
+  SyncType extends 'sync' | 'async'
 > {
   add: <T1 extends Tensor, T2 extends Tensor>(
     input: T1,
     other: T2,
     alpha?: Scalar<T1['device']>,
     ...error: FValidate<T1, T2>
-  ) => Result<T1, T2>;
+  ) => Result<T1, T2, SyncType>;
 
   sub: this['add'];
 
@@ -25,7 +26,7 @@ export interface ElementWiseBinaryAPI<
     input: T1,
     other: T2,
     ...error: FValidate<T1, T2>
-  ) => Result<T1, T2>;
+  ) => Result<T1, T2, SyncType>;
 }
 
 type Validate<T1 extends Tensor, T2 extends Tensor> = If<
@@ -46,11 +47,16 @@ type FValidate<T1 extends Tensor, T2 extends Tensor> = FValidator<
   Validate<T1, T2>
 >;
 
-type Result<T1 extends Tensor, T2 extends Tensor> = IfOk<
+type Result<
+  T1 extends Tensor,
+  T2 extends Tensor,
+  SyncType extends 'sync' | 'async'
+> = IfOk<
   Validate<T1, T2>,
   Tensor<
     Assume<Broadcast<T1['shape'], T2['shape']>, Shape>,
     PromoteDType<T1['dtype'], T2['dtype']>,
     T1['device']
-  >
+  >,
+  SyncType
 >;
