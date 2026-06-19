@@ -50,7 +50,7 @@ await torch.close();
 1. TypeScript checks tensor rules at compile time.
 2. The library starts a Python worker.
 3. The worker runs real PyTorch operations.
-4. Tensor metadata is returned to TypeScript and kept in the types.
+4. Tensor metadata and is returned to TypeScript.
 
 ## Setup
 
